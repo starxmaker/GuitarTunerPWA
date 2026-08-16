@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import { spawnSync } from 'node:child_process'
 import { createRequire } from 'node:module'
+import { chmodSync } from 'node:fs'
 import { copyFile, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
@@ -46,8 +47,28 @@ try {
   const archivePath = join(temporaryDirectory, 'SpanishClassicalGuitar.7z')
   const extractedDirectory = join(temporaryDirectory, 'extracted')
   await writeFile(archivePath, archiveBytes)
-  const extraction = spawnSync(path7za, ['x', archivePath, `-o${extractedDirectory}`, '-y'], { stdio: 'inherit' })
-  if (extraction.status !== 0) throw new Error(`7-Zip extraction failed with status ${extraction.status}`)
+
+  const extractors = [path7za, '7zz', '7z', '7za']
+  const failures = []
+  let extracted = false
+  for (const extractor of extractors) {
+    if (extractor === path7za) {
+      try {
+        chmodSync(path7za, 0o755)
+      } catch {
+        // Missing file or a platform without POSIX modes; the spawn below reports it.
+      }
+    }
+    const result = spawnSync(extractor, ['x', archivePath, `-o${extractedDirectory}`, '-y'], { stdio: 'inherit' })
+    if (result.status === 0) {
+      extracted = true
+      break
+    }
+    const reason = result.error ? result.error.message : `killed by ${result.signal ?? 'unknown signal'}`
+    failures.push(`${extractor} (${reason})`)
+    console.warn(`Extraction via ${extractor} failed: ${reason}; trying next extractor…`)
+  }
+  if (!extracted) throw new Error(`7-Zip extraction failed — tried: ${failures.join(', ')}`)
 
   const sourceDirectory = join(extractedDirectory, archiveFolder, 'samples')
   await mkdir(outputDirectory, { recursive: true })

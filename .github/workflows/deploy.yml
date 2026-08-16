@@ -19,6 +19,7 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      - run: sudo apt-get update && sudo apt-get install -y p7zip-full
       - run: npm test
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
