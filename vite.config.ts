@@ -5,7 +5,7 @@ import pkg from './package.json'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  const base = env.VITE_BASE_PATH || '/guitar-tuner-pwa/'
+  const base = env.VITE_BASE_PATH || '/GuitarTunerPWA/'
 
   return {
     base,
