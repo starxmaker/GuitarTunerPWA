@@ -1,7 +1,8 @@
 import type { PitchEstimate } from './tuning'
 
 const MIN_FREQUENCY = 70
-const MAX_FREQUENCY = 380
+// Give E4 enough room for small phone-microphone estimation errors and vibrato.
+const MAX_FREQUENCY = 420
 const SILENCE_RMS = 0.008
 const YIN_THRESHOLD = 0.15
 
@@ -44,7 +45,7 @@ export function detectPitch(samples: Float32Array, sampleRate: number): PitchEst
   // A strong period shorter than our supported range is an above-range tone,
   // not a guitar fundamental whose subharmonic should be reported.
   for (let tau = 2; tau < minTau; tau += 1) {
-    if (cmnd[tau] < 0.1 && cmnd[tau] <= cmnd[tau - 1] && cmnd[tau] <= cmnd[tau + 1]) return null
+    if (cmnd[tau] < 0.025 && cmnd[tau] <= cmnd[tau - 1] && cmnd[tau] <= cmnd[tau + 1]) return null
   }
 
   let tauEstimate = -1

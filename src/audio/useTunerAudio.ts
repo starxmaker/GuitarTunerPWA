@@ -111,7 +111,7 @@ export function useTunerAudio(lockedTarget: TuningTarget | null) {
         const samples = new Float32Array(currentAnalyser.fftSize)
         currentAnalyser.getFloatTimeDomainData(samples)
         const estimate = detectPitch(samples, currentContext.sampleRate)
-        if (!estimate || estimate.confidence < 0.65) {
+        if (!estimate || estimate.confidence < 0.55) {
           const lastConfidentPitchAt = lastConfidentPitchAtRef.current
           if (lastConfidentPitchAt === null || time - lastConfidentPitchAt > PITCH_HOLD_MS) {
             setReading((current) => makeSilentReading(lockedTargetRef.current ?? current.target))

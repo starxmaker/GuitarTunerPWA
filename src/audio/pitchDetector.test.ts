@@ -4,10 +4,10 @@ import { STANDARD_TUNING } from './tuning'
 const SAMPLE_RATE = 48_000
 const BUFFER_SIZE = 4096
 
-function sine(frequency: number, amplitude = 0.7, harmonics = false) {
+function sine(frequency: number, amplitude = 0.7, harmonicAmplitude = 0) {
   return Float32Array.from({ length: BUFFER_SIZE }, (_, index) => {
     const phase = 2 * Math.PI * frequency * index / SAMPLE_RATE
-    return amplitude * Math.sin(phase) + (harmonics ? amplitude * 0.22 * Math.sin(phase * 2) : 0)
+    return amplitude * Math.sin(phase) + harmonicAmplitude * Math.sin(phase * 2)
   })
 }
 
@@ -20,7 +20,13 @@ describe('detectPitch', () => {
   })
 
   it('finds the fundamental when harmonics are present', () => {
-    expect(detectPitch(sine(110, 0.55, true), SAMPLE_RATE)!.frequencyHz).toBeCloseTo(110, 0)
+    expect(detectPitch(sine(110, 0.55, 0.12), SAMPLE_RATE)!.frequencyHz).toBeCloseTo(110, 0)
+  })
+
+  it('finds the high E fundamental despite a strong second harmonic', () => {
+    const estimate = detectPitch(sine(329.6276, 0.18, 0.9), SAMPLE_RATE)
+    expect(estimate).not.toBeNull()
+    expect(estimate!.frequencyHz).toBeCloseTo(329.6276, 0)
   })
 
   it('rejects silence and very weak signals', () => {
