@@ -11,6 +11,7 @@ type Props = {
 
 export default function TuningMeter({ reading, audioState, activeToneId, onActivateString }: Props) {
   const { t } = useI18n()
+  const microphoneInUse = audioState === 'listening' || audioState === 'starting'
   const cents = reading.cents
   const boundedCents = Math.max(-50, Math.min(50, cents ?? 0))
   const markerPosition = Number((5 + ((boundedCents + 50) / 100) * 90).toFixed(2))
@@ -82,7 +83,9 @@ export default function TuningMeter({ reading, audioState, activeToneId, onActiv
                 type="button"
                 className={`headstock-note-button ${active ? 'headstock-note-button--active' : ''} ${playing ? 'headstock-note-button--playing' : ''}`}
                 style={{ left: `${(string.labelX / 360) * 100}%`, top: `${(string.labelY / 350) * 100}%` }}
-                aria-label={t(playing ? 'strings.stopTone' : 'strings.playTone', { note: string.note })}
+                aria-label={microphoneInUse
+                  ? t('strings.select', { number: target.stringNumber, note: string.note })
+                  : t(playing ? 'strings.stopTone' : 'strings.playTone', { note: string.note })}
                 aria-pressed={playing}
                 onClick={() => onActivateString(target)}
               >

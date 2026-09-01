@@ -16,6 +16,7 @@ describe('tuner components', () => {
     expect(screen.getByRole('status')).toHaveTextContent('')
     expect(screen.getByTestId('pitch-axis-marker')).toHaveTextContent('-5')
     expect(screen.getByTestId('pitch-axis-marker')).toHaveStyle({ left: '45.77%' })
+    expect(screen.getByRole('button', { name: 'Select string 5, A2' })).toBeInTheDocument()
   })
 
   it('keeps the status message empty while idle', () => {

@@ -25,6 +25,13 @@ export default function App() {
     setLockedTarget(target)
   }
 
+  const handleTargetActivate = (target: TuningTarget) => {
+    handleTargetSelect(target)
+    if (!isListening) {
+      void toggleTone(target)
+    }
+  }
+
   const toggleAutoMode = () => {
     setLockedTarget((current) => current ? null : reading.target)
   }
@@ -60,10 +67,7 @@ export default function App() {
           reading={reading}
           audioState={audioState}
           activeToneId={activeToneId}
-          onActivateString={(target) => {
-            handleTargetSelect(target)
-            void toggleTone(target)
-          }}
+          onActivateString={handleTargetActivate}
         />
 
         <button className={`listen-button ${isListening ? 'listen-button--stop' : ''}`} type="button" disabled={audioState === 'starting'} onClick={audioState === 'listening' ? stop : () => void start()}>

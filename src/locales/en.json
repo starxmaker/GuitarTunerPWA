@@ -14,6 +14,7 @@
   "strings.hint": "Tap a string to lock the target. Tap its speaker to hear the reference tone.",
   "strings.string": "String {number}, {note}",
   "strings.lock": "Lock tuner to string {number}, {note}",
+  "strings.select": "Select string {number}, {note}",
   "strings.playTone": "Play reference tone for {note}",
   "strings.stopTone": "Stop reference tone for {note}",
   "status.permissionDenied": "Microphone access was denied. Allow it in your browser settings, then try again.",

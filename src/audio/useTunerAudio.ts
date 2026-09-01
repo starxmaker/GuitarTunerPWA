@@ -13,6 +13,7 @@ import {
 export type AudioState = 'idle' | 'starting' | 'listening' | 'permissionDenied' | 'unsupported' | 'insecure' | 'error'
 
 const ANALYSIS_INTERVAL_MS = 70
+const PITCH_HOLD_MS = 1400
 
 export function useTunerAudio(lockedTarget: TuningTarget | null) {
   const [audioState, setAudioState] = useState<AudioState>('idle')
@@ -23,6 +24,7 @@ export function useTunerAudio(lockedTarget: TuningTarget | null) {
   const analyserRef = useRef<AnalyserNode | null>(null)
   const frameRef = useRef<number | null>(null)
   const lastAnalysisRef = useRef(0)
+  const lastConfidentPitchAtRef = useRef<number | null>(null)
   const lockedTargetRef = useRef(lockedTarget)
   const stabilizerRef = useRef(new ReadingStabilizer())
   const activeToneRef = useRef<GuitarStringId | null>(null)
@@ -66,11 +68,13 @@ export function useTunerAudio(lockedTarget: TuningTarget | null) {
     contextRef.current = null
     if (context) void context.close()
     stabilizerRef.current.reset(lockedTargetRef.current ?? DEFAULT_TARGET)
+    lastConfidentPitchAtRef.current = null
     setReading(makeSilentReading(lockedTargetRef.current ?? DEFAULT_TARGET))
     setAudioState('idle')
   }, [cancelFrame, stopTone])
 
   const start = useCallback(async () => {
+    stopTone()
     if (!window.isSecureContext && window.location.hostname !== 'localhost') {
       setAudioState('insecure')
       return
@@ -94,6 +98,7 @@ export function useTunerAudio(lockedTarget: TuningTarget | null) {
       context.createMediaStreamSource(stream).connect(analyser)
       analyserRef.current = analyser
       stabilizerRef.current.reset(lockedTargetRef.current ?? DEFAULT_TARGET)
+      lastConfidentPitchAtRef.current = null
       setAudioState('listening')
       lastAnalysisRef.current = 0
       const analyze = (time: number) => {
@@ -107,9 +112,13 @@ export function useTunerAudio(lockedTarget: TuningTarget | null) {
         currentAnalyser.getFloatTimeDomainData(samples)
         const estimate = detectPitch(samples, currentContext.sampleRate)
         if (!estimate || estimate.confidence < 0.65) {
-          setReading((current) => makeSilentReading(lockedTargetRef.current ?? current.target))
+          const lastConfidentPitchAt = lastConfidentPitchAtRef.current
+          if (lastConfidentPitchAt === null || time - lastConfidentPitchAt > PITCH_HOLD_MS) {
+            setReading((current) => makeSilentReading(lockedTargetRef.current ?? current.target))
+          }
           return
         }
+        lastConfidentPitchAtRef.current = time
         setReading(stabilizerRef.current.update(estimate, lockedTargetRef.current))
       }
       frameRef.current = requestAnimationFrame(analyze)
@@ -122,7 +131,7 @@ export function useTunerAudio(lockedTarget: TuningTarget | null) {
       const name = error instanceof DOMException ? error.name : ''
       setAudioState(name === 'NotAllowedError' || name === 'SecurityError' ? 'permissionDenied' : 'error')
     }
-  }, [])
+  }, [stopTone])
 
   const toggleTone = useCallback(async (target: TuningTarget) => {
     if (!window.AudioContext) {

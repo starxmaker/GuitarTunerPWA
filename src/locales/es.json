@@ -14,6 +14,7 @@
   "strings.hint": "Pulsa una cuerda para fijar el objetivo. Pulsa su altavoz para oír el tono de referencia.",
   "strings.string": "Cuerda {number}, {note}",
   "strings.lock": "Fijar el afinador en la cuerda {number}, {note}",
+  "strings.select": "Seleccionar cuerda {number}, {note}",
   "strings.playTone": "Reproducir tono de referencia para {note}",
   "strings.stopTone": "Detener tono de referencia para {note}",
   "status.permissionDenied": "Se rechazó el acceso al micrófono. Permítelo en la configuración del navegador e inténtalo de nuevo.",
