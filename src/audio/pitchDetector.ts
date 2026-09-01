@@ -1,10 +1,49 @@
-import type { PitchEstimate } from './tuning'
+import { centsBetween, STANDARD_TUNING, type PitchEstimate } from './tuning'
 
 const MIN_FREQUENCY = 70
 // Give E4 enough room for small phone-microphone estimation errors and vibrato.
 const MAX_FREQUENCY = 420
 const SILENCE_RMS = 0.008
 const YIN_THRESHOLD = 0.15
+const SUBHARMONIC_CANDIDATE_THRESHOLD = 0.42
+const TARGET_MATCH_CENTS = 150
+
+function closestTargetDistance(frequencyHz: number) {
+  return Math.min(...STANDARD_TUNING.map((target) => Math.abs(centsBetween(frequencyHz, target.frequencyHz))))
+}
+
+function localMinimum(cmnd: Float64Array, center: number, minTau: number, maxTau: number) {
+  let bestTau = Math.max(minTau, Math.min(maxTau, Math.round(center)))
+  for (let tau = Math.max(minTau, bestTau - 2); tau <= Math.min(maxTau, bestTau + 2); tau += 1) {
+    if (cmnd[tau] < cmnd[bestTau]) bestTau = tau
+  }
+  return bestTau
+}
+
+function correctSubharmonicTau(
+  cmnd: Float64Array,
+  tauEstimate: number,
+  sampleRate: number,
+  minTau: number,
+  maxTau: number,
+) {
+  let correctedTau = tauEstimate
+  let bestScore = SUBHARMONIC_CANDIDATE_THRESHOLD
+
+  for (const multiplier of [2, 3, 4]) {
+    const candidateTau = tauEstimate / multiplier
+    if (candidateTau < minTau) continue
+    const refinedCandidateTau = localMinimum(cmnd, candidateTau, minTau, maxTau)
+    const candidateFrequency = sampleRate / refinedCandidateTau
+    if (closestTargetDistance(candidateFrequency) > TARGET_MATCH_CENTS) continue
+    if (cmnd[refinedCandidateTau] < bestScore) {
+      correctedTau = refinedCandidateTau
+      bestScore = cmnd[refinedCandidateTau]
+    }
+  }
+
+  return correctedTau
+}
 
 export function detectPitch(samples: Float32Array, sampleRate: number): PitchEstimate | null {
   if (samples.length < 2 || sampleRate <= 0) return null
@@ -64,6 +103,8 @@ export function detectPitch(samples: Float32Array, sampleRate: number): PitchEst
     if (cmnd[best] > 0.35) return null
     tauEstimate = best
   }
+
+  tauEstimate = correctSubharmonicTau(cmnd, tauEstimate, sampleRate, minTau, maxTau)
 
   let refinedTau = tauEstimate
   if (tauEstimate > 1 && tauEstimate < maxTau) {
